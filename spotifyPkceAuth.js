@@ -1,6 +1,6 @@
-const redirectUri = import.meta.env.VITE_REDIRECT_URI;
+const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI; // <--- Remember to add your redirect uri to the .env file
 
-// Code Verifier
+const BASE_URL = "https://accounts.spotify.com";
 
 function generateRandomString(length) {
   const possible =
@@ -8,8 +8,6 @@ function generateRandomString(length) {
   const values = crypto.getRandomValues(new Uint8Array(length));
   return values.reduce((acc, x) => acc + possible[x % possible.length], "");
 }
-
-// Code Challenge
 
 async function generateCodeChallenge(codeVerifier) {
   const hashed = await sha256(codeVerifier);
@@ -29,8 +27,6 @@ function base64encode(input) {
     .replace(/\//g, "_");
 }
 
-// Request User Authorization
-
 export async function redirectToAuthCodeFlow(clientId) {
   const codeVerifier = generateRandomString(128);
   const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -40,18 +36,16 @@ export async function redirectToAuthCodeFlow(clientId) {
   const params = new URLSearchParams();
   params.append("client_id", clientId);
   params.append("response_type", "code");
-  params.append("redirect_uri", redirectUri);
+  params.append("redirect_uri", REDIRECT_URI);
   params.append("scope", "user-read-private user-read-email");
   params.append("code_challenge_method", "S256");
   params.append("code_challenge", codeChallenge);
 
-  const authUrl = new URL("https://accounts.spotify.com/authorize");
+  const authUrl = new URL(`${BASE_URL}/authorize`);
   authUrl.search = params.toString();
 
   window.location.href = authUrl.toString();
 }
-
-// Request Access Token
 
 export async function getAccessToken(clientId, code) {
   const codeVerifier = localStorage.getItem("code_verifier");
@@ -60,7 +54,7 @@ export async function getAccessToken(clientId, code) {
   params.append("client_id", clientId);
   params.append("grant_type", "authorization_code");
   params.append("code", code);
-  params.append("redirect_uri", redirectUri);
+  params.append("redirect_uri", REDIRECT_URI);
   params.append("code_verifier", codeVerifier);
 
   const payload = {
@@ -69,9 +63,9 @@ export async function getAccessToken(clientId, code) {
     body: params,
   };
 
-  const url = "https://accounts.spotify.com/api/token";
-  const result = await fetch(url, payload);
+  const url = `${BASE_URL}/api/token`;
+  const response = await fetch(url, payload);
 
-  const { access_token } = await result.json();
+  const { access_token } = await response.json();
   return access_token;
 }
