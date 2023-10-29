@@ -1,6 +1,6 @@
 import { getAccessToken, redirectToAuthCodeFlow } from "./spotifyPkceAuth.js";
 
-import { tracklist } from "./chart.json";
+import tracklist from "./chart.json";
 
 const BASE_URL = "https://api.spotify.com/v1";
 
@@ -45,35 +45,37 @@ async function searchForTrack(accessToken, trackName) {
 }
 
 async function getMetaData(accessToken, tracklist) {
-  return Promise.all(
-    tracklist.map(async (track) => {
-      const content = await searchForTrack(accessToken, track[SEARCH_PROPERTY]);
-      console.log("🔎", content);
-      const metaData = toMetaData(content);
-      return { ...track, ...metaData };
-    })
-  );
+  const metaData = [];
+
+  for (const track of tracklist) {
+    const content = await searchForTrack(accessToken, track[SEARCH_PROPERTY]);
+    console.log("🔎", content);
+    metaData.push({ ...track, ...extractMetaData(content) });
+    await new Promise((resolve) => setTimeout(resolve, 200)); // Avoid rate limiting
+  }
+
+  return metaData;
 }
 
-function toMetaData(track) {
+function extractMetaData(track) {
   return {
     id: track.id,
     track_name: track.name,
     artists_name: track.artists
       .map((artist) => artist.name)
-      .filter((content) => content != null)
+      .filter((name) => name != null)
       .join(";"),
     artists_follower: track.artists
       .map((artist) => artist.followers?.total)
-      .filter((content) => content != null)
+      .filter((followers) => followers != null)
       .join(";"),
     artists_popularity: track.artists
       .map((artist) => artist.popularity)
-      .filter((content) => content != null)
+      .filter((popularity) => popularity != null)
       .join(";"),
     artists_genres: track.artists
       .map((artist) => artist.genres?.join(","))
-      .filter((content) => content != null)
+      .filter((genres) => genres != null)
       .join(";"),
     album_name: track.album.name,
     album_release_date: track.album.release_date,
@@ -100,26 +102,26 @@ async function getAudioFeatures(accessToken, tracklist) {
   const { audio_features } = await response.json();
   console.log("🔉", audio_features);
 
-  return audio_features.map((audioFeature, trackIndex) => {
-    const selectedFeatures = getFeatures(audioFeature);
-    return { ...metaData[trackIndex], ...selectedFeatures };
-  });
+  return audio_features.map((track, trackIndex) => ({
+    ...metaData[trackIndex],
+    ...extractAudioFeatures(track),
+  }));
 }
 
-function getFeatures(audioFeature) {
+function extractAudioFeatures(track) {
   return {
-    acousticness: audioFeature.acousticness,
-    danceability: audioFeature.danceability,
-    energy: audioFeature.energy,
-    instrumentalness: audioFeature.instrumentalness,
-    key: audioFeature.key,
-    liveness: audioFeature.liveness,
-    loudness: audioFeature.loudness,
-    mode: audioFeature.mode,
-    speechiness: audioFeature.speechiness,
-    tempo: audioFeature.tempo,
-    time_signature: audioFeature.time_signature,
-    valence: audioFeature.valence,
+    acousticness: track.acousticness,
+    danceability: track.danceability,
+    energy: track.energy,
+    instrumentalness: track.instrumentalness,
+    key: track.key,
+    liveness: track.liveness,
+    loudness: track.loudness,
+    mode: track.mode,
+    speechiness: track.speechiness,
+    tempo: track.tempo,
+    time_signature: track.time_signature,
+    valence: track.valence,
   };
 }
 
@@ -131,8 +133,8 @@ function exportToCsv(data) {
   download(csvContent);
 }
 
-function download(content) {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+function download(csvContent) {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");

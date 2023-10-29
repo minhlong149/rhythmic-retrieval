@@ -1,7 +1,5 @@
-{
-  "tracklist": [
-    { "name": "Stephen Sanchez - Until I Found You", "stream": 4100829 },
-    { "name": "Phùng Khánh Linh - Hôm Nay Tôi Buồn", "stream": 2504703 },
-    { "name": "BLACKPINK - As If It's Your Last", "stream": 1691058 }
-  ]
-}
+[
+  { "name": "Stephen Sanchez - Until I Found You", "stream": 4100829 },
+  { "name": "Phùng Khánh Linh - Hôm Nay Tôi Buồn", "stream": 2504703 },
+  { "name": "BLACKPINK - As If It's Your Last", "stream": 1691058 }
+]
